@@ -1,6 +1,8 @@
 
 var mysql = require('mysql');
 var http = require('http');
+var querystring = require('querystring');
+var url = require('url');
 
 var con = mysql.createConnection(
   {
@@ -11,6 +13,32 @@ var con = mysql.createConnection(
   }
 );
 
+function processPost(request, response, callback) {
+    var queryData = "";
+    if(typeof callback !== 'function') return null;
+
+    if(request.method == 'POST') {
+        request.on('data', function(data) {
+            queryData += data;
+            if(queryData.length > 1e6) {
+                queryData = "";
+                response.writeHead(413, {'Content-Type': 'text/plain'}).end();
+                request.connection.destroy();
+            }
+        });
+
+        request.on('end', function() {
+            request.post = querystring.parse(queryData);
+            callback();
+        });
+
+    } else {
+        response.writeHead(405, {'Content-Type': 'text/plain'});
+        response.end();
+    }
+}
+
+
 con.connect(function(err){
   if(err) throw err;
   console.log("Connected");
@@ -19,17 +47,72 @@ con.connect(function(err){
     if(err) throw err;
   });
 
+
   http.createServer(function (request, response)
 {
-  var sql="SELECT ID, Text FROM coordinates WHERE ID = ?";
-  con.query(sql, [4], function(err, result,fields)
+  if(request.method == 'GET'){
+    var q = url.parse(request.url,true).query;
+    var sql="SELECT ID, Text FROM coordinates WHERE (Xcoordinate-?)*(Xcoordinate-?) * (Ycoordinate-?) * (Ycoordinate-?) > 10";
+    /*ar sql1 = "INSERT INTO coordinates (ID, Xcoordinate, Ycoordinate, Text) VALUES (?,?,?,?)";
+    con.query(sql1,[q.ID,q.Xcoordinate,q.Ycoordinate,q.Text], function(err,result){
+      if(err) throw err;
+    });
+    */
+    //console.log(q.ID);
+    con.query(sql, [q.Xcoordinate,q.Xcoordinate,q.Ycoordinate,q.Ycoordinate], function(err, result)
+    {
+      if (err) throw err;
+      response.writeHead(200, { 'Content-type' : 'application/json'});
+      response.write(JSON.stringify(result));
+      response.end();
+  });
+  }
+    /*request.on('data',fuction(data)
   {
-    response.writeHead(200, { 'Content-type' : 'application/json'});
-    response.write(JSON.stringify(result));
-    response.end();
-})
-}).listen(8084);
-});
+
+  });*/
+  else if(request.method == 'POST') {
+      processPost(request, response, function() {
+          console.log(request.post);
+          console.log(request.post.ID);
+          // Use request.post here
+          var sql="SELECT ID, Text FROM coordinates WHERE (Xcoordinate-?)*(Xcoordinate-?) * (Ycoordinate-?) * (Ycoordinate-?) > 10";
+          /*ar sql1 = "INSERT INTO coordinates (ID, Xcoordinate, Ycoordinate, Text) VALUES (?,?,?,?)";
+          con.query(sql1,[q.ID,q.Xcoordinate,q.Ycoordinate,q.Text], function(err,result){
+            if(err) throw err;
+          });
+          */
+          //console.log(q.ID);
+          con.query(sql, [q.Xcoordinate,q.Xcoordinate,q.Ycoordinate,q.Ycoordinate], function(err, result)
+          {
+            if (err) throw err;
+            response.writeHead(200, { 'Content-type' : 'application/json'});
+            response.write(JSON.stringify(result));
+            response.end();
+        });
+        /*
+          var sql="SELECT ID, Text FROM coordinates WHERE ID = ?";
+          con.query(sql, [request.post.ID], function(err, result,fields)
+          {
+            if (err) throw err;
+            response.writeHead(200, { 'Content-type' : 'application/json'});
+            response.write(JSON.stringify(result));
+            response.end();
+        });
+        */
+          /*response.writeHead(200, "OK", {'Content-Type': 'text/plain'});
+          response.end();*/
+      });
+  }
+  else {
+      response.writeHead(200, "OK", {'Content-Type': 'text/plain'});
+      response.write("Przykladowy 222 tekst");
+      response.end();
+  }
+  //var question1 = request.json.stringify();
+
+}).listen(8085);
+  });
 
 
 /*

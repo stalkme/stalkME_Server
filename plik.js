@@ -53,11 +53,11 @@ con.connect(function(err){
   if(request.method == 'GET'){
     var q = url.parse(request.url,true).query;
     var sql="SELECT ID, Text FROM coordinates WHERE (Xcoordinate-?)*(Xcoordinate-?) * (Ycoordinate-?) * (Ycoordinate-?) > 10";
-    /*ar sql1 = "INSERT INTO coordinates (ID, Xcoordinate, Ycoordinate, Text) VALUES (?,?,?,?)";
-    con.query(sql1,[q.ID,q.Xcoordinate,q.Ycoordinate,q.Text], function(err,result){
+    var sql1 = "INSERT INTO coordinates (ID, Xcoordinate, Ycoordinate, Text) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE Xcoordinate= ? , Ycoordinate= ? , Text= ?" ;
+    con.query(sql1,[q.ID,q.Xcoordinate,q.Ycoordinate,q.Text,q.Xcoordinate,q.Ycoordinate,q.Text], function(err,result){
       if(err) throw err;
     });
-    */
+
     //console.log(q.ID);
     con.query(sql, [q.Xcoordinate,q.Xcoordinate,q.Ycoordinate,q.Ycoordinate], function(err, result)
     {

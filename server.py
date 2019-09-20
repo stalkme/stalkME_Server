@@ -31,6 +31,7 @@ class my_own_HTTPHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         
         message = "StalkME I see you!!!"
+        message.append("  This is my message!")
         
         self.wfile.write(bytes(message, "utf8"))
         return

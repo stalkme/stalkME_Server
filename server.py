@@ -8,10 +8,11 @@ This is a temporary script file.
 import http.server
 import mysql.connector
 import cgi
+import json
 
 try:
     connection = mysql.connector.connect(host='localhost',
-                                         database='stalkMEMain',
+                                         database='stalkmemain',
                                          user='root',
                                          password='123')
     if connection.is_connected():
@@ -31,30 +32,38 @@ class my_own_HTTPHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         
     def do_GET(self):
-        self.set_Headers()
+        self.send_response(200)
+        self.send_header('Content-type','text/html')
+        self.end_headers()
         message = "StalkME I see you!!!"
-        message.append("  This is my message!")
-        
         self.wfile.write(bytes(message, "utf8"))
-        return
     
     def do_POST(self):
-        contentType, parseDict = cgi.parse_header(self.headers.getheader('content-type'))
-        
+        contentType, parseDict = cgi.parse_header(self.headers.get('content-type'))  
         
         if contentType != 'application/json':
             self.send_response(400)
             self.end_headers()
             return
         
-        length = int(self.headers.getheader('content-length'))
+        length = int(self.headers.get('content-length'))
         message = json.loads(self.rfile.read(length))
-        
+        if 'id' not in message: 
+            sql_request = 'INSERT INTO userinfo  (UserID) VALUES (%s)'
+            cursor = connection.cursor()
+            cursor.execute("""SELECT MAX(A.UserID) 
+            FROM userinfo AS A """)
+            new_id = cursor.fetchone()[0] + 1
+            print(new_id)
+            cursor.execute(sql_request,(new_id,))
+            connection.commit()
+            response_dict = {'id':new_id}
+            self.set_Headers()
+            self.wfile.write(bytes(json.dumps(response_dict),'utf-8'))
+            new_id = 0;
+            return
         self.set_Headers()
-        message['length'] = length
-        self.set_Headers
-        self.wfile.write(json.dumps(message))
-
+        self.wfile.write(bytes(json.dumps(message),'utf-8'))
 #%%
 def run():
     print('Server is working...')
@@ -65,6 +74,7 @@ def run():
     httpd.serve_forever()
 
 run()
+print("chuj")
 if (connection.is_connected()):
     cursor.close()
     connection.close()

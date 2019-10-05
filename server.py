@@ -7,6 +7,7 @@ This is a temporary script file.
 
 import http.server
 import mysql.connector
+import cgi
 
 try:
     connection = mysql.connector.connect(host='localhost',
@@ -23,18 +24,37 @@ except mysql.connector.Error as e:
 
 
 class my_own_HTTPHandler(http.server.BaseHTTPRequestHandler):
-    
-    def do_GET(self):
+  
+    def set_Headers(self):
         self.send_response(200)
-        
-        self.send_header('Content-type','text/html')
+        self.send_header('Content-type','application/json')
         self.end_headers()
         
+    def do_GET(self):
+        self.set_Headers()
         message = "StalkME I see you!!!"
         
         self.wfile.write(bytes(message, "utf8"))
         return
+    
+    def do_POST(self):
+        contentType, parseDict = cgi.parse_header(self.headers.getheader('content-type'))
+        
+        
+        if contentType != 'application/json':
+            self.send_response(400)
+            self.end_headers()
+            return
+        
+        length = int(self.headers.getheader('content-length'))
+        message = json.loads(self.rfile.read(length))
+        
+        self.set_Headers()
+        message['length'] = length
+        self.set_Headers
+        self.wfile.write(json.dumps(message))
 
+#%%
 def run():
     print('Server is working...')
     

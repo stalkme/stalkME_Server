@@ -33,6 +33,7 @@ class my_own_HTTPHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.set_Headers()
         message = "StalkME I see you!!!"
+        message.append("  This is my message!")
         
         self.wfile.write(bytes(message, "utf8"))
         return

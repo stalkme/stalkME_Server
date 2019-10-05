@@ -62,6 +62,20 @@ class my_own_HTTPHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(bytes(json.dumps(response_dict),'utf-8'))
             new_id = 0;
             return
+        insert_request = ("""UPDATE userinfo
+                            SET nickname = %s, Xcoordinate = %s, Ycoordinate = %s
+                            WHERE UserID is not NULL 
+                            AND UserID = %s""")
+        values = (message['nickname'],message['latitude'],message['longitude'],message['id'])
+        cursor = connection.cursor()
+        cursor.execute(insert_request, values) 
+        connection.commit()
+        get_nearby_users_query = ("""SELECT A.nickname, A.message, A.Xcoordinate, A.Ycoordinate 
+                                  FROM userinfo as A
+                                  WHERE A.nickname is not NULL
+                                  AND A.Xcoordinate is not NULL""")
+        cursor.execute(get_nearby_users_query)
+        message = cursor.fetchall()
         self.set_Headers()
         self.wfile.write(bytes(json.dumps(message),'utf-8'))
 #%%

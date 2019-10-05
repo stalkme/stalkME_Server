@@ -48,7 +48,7 @@ class my_own_HTTPHandler(http.server.BaseHTTPRequestHandler):
         
         length = int(self.headers.get('content-length'))
         message = json.loads(self.rfile.read(length))
-        if 'id' not in message: 
+        if 'id' not in message or message['id'] == None: 
             sql_request = 'INSERT INTO userinfo  (UserID) VALUES (%s)'
             cursor = connection.cursor()
             cursor.execute("""SELECT MAX(A.UserID) 
@@ -61,6 +61,10 @@ class my_own_HTTPHandler(http.server.BaseHTTPRequestHandler):
             self.set_Headers()
             self.wfile.write(bytes(json.dumps(response_dict),'utf-8'))
             new_id = 0;
+            return
+        if (message['nickname'] == None or message['latitude'] == None or message['longitude'] == None):
+            self.send_response(400)
+            self.end_headers()
             return
         insert_request = ("""UPDATE userinfo
                             SET nickname = %s, Xcoordinate = %s, Ycoordinate = %s

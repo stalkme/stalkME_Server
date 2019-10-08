@@ -42,7 +42,7 @@ function processPost(request, response, callback) {
 con.connect(function(err){
   if(err) throw err;
   console.log("Connected");
-  var sql = "CREATE TABLE IF NOT EXISTS coordinates (ID int NOT NULL PRIMARY KEY,Xcoordinate int,Ycoordinate int,Text varchar(50))";
+  var sql = "CREATE TABLE IF NOT EXISTS coordinates (ID int NOT NULL PRIMARY KEY,Xcoordinate float NOT NULL ,Ycoordinate float NOT NULL ,Text varchar(100))";
   con.query(sql, function(err,result){
     if(err) throw err;
   });
@@ -52,20 +52,31 @@ con.connect(function(err){
 {
   if(request.method == 'GET'){
     var q = url.parse(request.url,true).query;
-    var sql="SELECT ID, Text FROM coordinates WHERE (Xcoordinate-?)*(Xcoordinate-?) * (Ycoordinate-?) * (Ycoordinate-?) > 10";
+    console.log(request.url);
+    var sql="SELECT ID,Xcoordinate,Ycoordinate,Text FROM coordinates WHERE (((Xcoordinate-?)*(Xcoordinate-?)) +  ((Ycoordinate-?) * (Ycoordinate-?))) < 1";
     var sql1 = "INSERT INTO coordinates (ID, Xcoordinate, Ycoordinate, Text) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE Xcoordinate= ? , Ycoordinate= ? , Text= ?" ;
     con.query(sql1,[q.ID,q.Xcoordinate,q.Ycoordinate,q.Text,q.Xcoordinate,q.Ycoordinate,q.Text], function(err,result){
-      if(err) throw err;
+      if(err)
+      {
+        response.writeHead(400, { 'Content-type' : 'text/html'});
+        // response.write('<body>');
+        // response.write('<p>Chujowe zapytanie</p>');
+        // response.write('</body>');
+        // response.write('</html>');
+        response.end("Wrong sql query");
+      }
+      else{
+        con.query(sql, [q.Xcoordinate,q.Xcoordinate,q.Ycoordinate,q.Ycoordinate], function(err, result)
+        {
+          if (err) throw err;
+          response.writeHead(200, { 'Content-type' : 'application/json'});
+          response.write(JSON.stringify(result));
+          response.end();
+        });
+      }
     });
 
     //console.log(q.ID);
-    con.query(sql, [q.Xcoordinate,q.Xcoordinate,q.Ycoordinate,q.Ycoordinate], function(err, result)
-    {
-      if (err) throw err;
-      response.writeHead(200, { 'Content-type' : 'application/json'});
-      response.write(JSON.stringify(result));
-      response.end();
-  });
   }
     /*request.on('data',fuction(data)
   {
@@ -76,14 +87,20 @@ con.connect(function(err){
           console.log(request.post);
           console.log(request.post.ID);
           // Use request.post here
-          var sql="SELECT ID, Text FROM coordinates WHERE (Xcoordinate-?)*(Xcoordinate-?) * (Ycoordinate-?) * (Ycoordinate-?) > 10";
           /*ar sql1 = "INSERT INTO coordinates (ID, Xcoordinate, Ycoordinate, Text) VALUES (?,?,?,?)";
           con.query(sql1,[q.ID,q.Xcoordinate,q.Ycoordinate,q.Text], function(err,result){
             if(err) throw err;
           });
           */
           //console.log(q.ID);
-          con.query(sql, [q.Xcoordinate,q.Xcoordinate,q.Ycoordinate,q.Ycoordinate], function(err, result)
+          var sql="SELECT ID,Xcoordinate,Ycoordinate,Text FROM coordinates WHERE (Xcoordinate-?)*(Xcoordinate-?) +  (Ycoordinate-?) * (Ycoordinate-?) = 0";
+          var sql1 = "INSERT INTO coordinates (ID, Xcoordinate, Ycoordinate, Text) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE Xcoordinate= ? , Ycoordinate= ? , Text= ?" ;
+          con.query(sql1,[post.ID,post.Xcoordinate,post.Ycoordinate,post.Text,post.Xcoordinate,post.Ycoordinate,post.Text], function(err,result){
+            if(err) throw err;
+          });
+
+          //console.log(q.ID);
+          con.query(sql, [post.Xcoordinate,post.Xcoordinate,post.Ycoordinate,post.Ycoordinate], function(err, result)
           {
             if (err) throw err;
             response.writeHead(200, { 'Content-type' : 'application/json'});

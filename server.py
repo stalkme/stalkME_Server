@@ -40,7 +40,6 @@ class my_own_HTTPHandler(http.server.BaseHTTPRequestHandler):
     
     def do_POST(self):
         contentType, parseDict = cgi.parse_header(self.headers.get('content-type'))  
-        
         if contentType != 'application/json':
             self.send_response(400)
             self.end_headers()
@@ -67,21 +66,32 @@ class my_own_HTTPHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             return
         insert_request = ("""UPDATE userinfo
-                            SET nickname = %s, Xcoordinate = %s, Ycoordinate = %s
+                            SET nickname = %s, message = %s, Xcoordinate = %s, Ycoordinate = %s
                             WHERE UserID is not NULL 
                             AND UserID = %s""")
-        values = (message['nickname'],message['latitude'],message['longitude'],message['id'])
+        values = (message['nickname'],message['message'],message['longitude'],message['latitude'],message['id'])
         cursor = connection.cursor()
         cursor.execute(insert_request, values) 
         connection.commit()
-        get_nearby_users_query = ("""SELECT A.nickname, A.message, A.Xcoordinate, A.Ycoordinate 
+        get_nearby_users_query = ("""SELECT A.userid,A.nickname, A.message, A.Xcoordinate, A.Ycoordinate 
                                   FROM userinfo as A
                                   WHERE A.nickname is not NULL
                                   AND A.Xcoordinate is not NULL""")
         cursor.execute(get_nearby_users_query)
         message = cursor.fetchall()
+        response = []
+        for x in message:
+            responseDict = {}
+            responseDict['id'] = x[0]
+            responseDict['nickname'] = x[1]
+            responseDict['message'] = x[2]
+            responseDict['longitude'] = x[3]
+            responseDict['latitude'] = x[4]
+            response.append(responseDict)
+        print (response)
         self.set_Headers()
-        self.wfile.write(bytes(json.dumps(message),'utf-8'))
+        self.send_response(200)
+        self.wfile.write(bytes(json.dumps(response),'utf-8'))
 #%%
 def run():
     print('Server is working...')
